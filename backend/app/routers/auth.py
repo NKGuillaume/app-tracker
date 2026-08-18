@@ -12,17 +12,27 @@ from app.services.crypto import encrypt_token
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 STATE_COOKIE_NAME = "oauth_state"
+CODE_VERIFIER_COOKIE_NAME = "oauth_code_verifier"
 
 
 @router.get("/login")
 async def login() -> RedirectResponse:
     state = google_oauth.generate_state()
-    auth_url = google_oauth.get_authorization_url(state)
+    code_verifier = google_oauth.generate_code_verifier()
+    auth_url = google_oauth.get_authorization_url(state, code_verifier)
 
     response = RedirectResponse(auth_url)
     response.set_cookie(
         STATE_COOKIE_NAME,
         state,
+        httponly=True,
+        secure=settings.cookies_secure,
+        samesite="lax",
+        max_age=600,
+    )
+    response.set_cookie(
+        CODE_VERIFIER_COOKIE_NAME,
+        code_verifier,
         httponly=True,
         secure=settings.cookies_secure,
         samesite="lax",
@@ -36,11 +46,14 @@ async def callback(
     code: str,
     state: str,
     oauth_state: str | None = Cookie(default=None, alias=STATE_COOKIE_NAME),
+    oauth_code_verifier: str | None = Cookie(default=None, alias=CODE_VERIFIER_COOKIE_NAME),
 ) -> RedirectResponse:
     if not oauth_state or oauth_state != state:
         raise HTTPException(status_code=400, detail="Invalid or missing OAuth state")
+    if not oauth_code_verifier:
+        raise HTTPException(status_code=400, detail="Missing PKCE code verifier")
 
-    credentials = google_oauth.exchange_code_for_tokens(code)
+    credentials = google_oauth.exchange_code_for_tokens(code, oauth_code_verifier)
     claims = google_oauth.verify_id_token(credentials)
 
     google_sub = claims["sub"]
@@ -62,7 +75,7 @@ async def callback(
         user_data["google_refresh_token_encrypted"] = encrypt_token(credentials.refresh_token)
         user_data["google_token_scope"] = " ".join(credentials.scopes or [])
 
-    if existing.data:
+    if existing and existing.data:
         user_id = existing.data["id"]
         db.table("users").update(user_data).eq("id", user_id).execute()
     else:
@@ -78,6 +91,7 @@ async def callback(
 
     response = RedirectResponse(f"{settings.frontend_origin}/auth/callback")
     response.delete_cookie(STATE_COOKIE_NAME)
+    response.delete_cookie(CODE_VERIFIER_COOKIE_NAME)
     response.set_cookie(
         SESSION_COOKIE_NAME,
         session_token,

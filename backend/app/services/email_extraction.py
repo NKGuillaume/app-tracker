@@ -21,9 +21,19 @@ Set is_job_application_email to false (with all other fields null/"unknown") for
 - Newsletters, marketing, or promotional content
 - Recruiter cold outreach where the recipient has not already applied to a role
 
+An automated or auto-responder sender address (noreply@, careerautoresponder@,
+talent@, do-not-reply@) does NOT make an email promotional. Application receipts
+and status updates are almost always sent from such addresses -- classify by what
+the email says about their application, not by the sender's automation.
+
 Worked examples:
 - Subject "Your application to Acme Corp was received" from Greenhouse
   -> is_job_application_email=true, status="applied"
+- "We've received your application!" from an automated talent-acquisition address
+  -> is_job_application_email=true, status="applied"
+- "Complete Your Technical Assessment" or an online-assessment / HireVue / coding
+  test invitation for a role they applied to
+  -> is_job_application_email=true, status="interview"
 - "We'd like to schedule a call to discuss your background"
   -> is_job_application_email=true, status="interview"
 - "After careful consideration, we've decided to move forward with other candidates"

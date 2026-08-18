@@ -34,15 +34,13 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-      <button type="button" onClick={handleSync} disabled={syncing}>
+      {error && <span className="sync-error">{error}</span>}
+      {!error && lastSyncedAt && (
+        <span className="sync-note">Last synced {new Date(lastSyncedAt).toLocaleString()}</span>
+      )}
+      <button type="button" className="btn btn--primary" onClick={handleSync} disabled={syncing}>
         {syncing ? "Syncing..." : "Sync now"}
       </button>
-      {error && <span style={{ color: "#d1453b" }}>{error}</span>}
-      {!error && lastSyncedAt && (
-        <span style={{ color: "#666", fontSize: "0.85rem" }}>
-          Last synced {new Date(lastSyncedAt).toLocaleString()}
-        </span>
-      )}
     </div>
   );
 }

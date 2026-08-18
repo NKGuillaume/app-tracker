@@ -28,7 +28,7 @@ export function Dashboard({ user, onLoggedOut }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "">("");
-  const [sort, setSort] = useState("-updated_at");
+  const [sort, setSort] = useState("-application_date");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Application | null>(null);
 
@@ -53,22 +53,24 @@ export function Dashboard({ user, onLoggedOut }: DashboardProps) {
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="page">
+      <header className="app-header">
         <h1>Application Tracker</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div className="app-header__user">
           <span>{user.name ?? user.email}</span>
-          <button type="button" onClick={handleLogout}>
+          <button type="button" className="btn btn--ghost" onClick={handleLogout}>
             Log out
           </button>
         </div>
       </header>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
+      <div className="toolbar">
+        <div className="toolbar__filters">
           <input
             type="text"
+            className="input"
             placeholder="Search company or job title..."
+            aria-label="Search company or job title"
             value={search}
             onChange={(e) => {
               setPage(1);
@@ -76,6 +78,8 @@ export function Dashboard({ user, onLoggedOut }: DashboardProps) {
             }}
           />
           <select
+            className="select"
+            aria-label="Filter by status"
             value={statusFilter}
             onChange={(e) => {
               setPage(1);

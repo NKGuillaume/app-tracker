@@ -15,8 +15,8 @@ export function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
-      <p>Signing you in...</p>
+    <div className="center-screen">
+      <p className="status-text">Signing you in...</p>
     </div>
   );
 }

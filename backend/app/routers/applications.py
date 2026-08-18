@@ -44,7 +44,9 @@ async def list_applications(
     sort_column = sort[1:] if descending else sort
     if sort_column not in SORTABLE_COLUMNS:
         sort_column, descending = "updated_at", True
-    q = q.order(sort_column, desc=descending)
+    # nullsfirst=False keeps rows with no date at the bottom for descending date
+    # sorts (Postgres would otherwise put NULLs first).
+    q = q.order(sort_column, desc=descending, nullsfirst=False)
 
     start = (page - 1) * page_size
     q = q.range(start, start + page_size - 1)
@@ -88,5 +90,10 @@ async def update_application(
 @router.delete("/{application_id}", status_code=204)
 async def delete_application(application_id: str, current_user: dict = Depends(get_current_user)) -> Response:
     db = get_db()
+    # processed_emails rows keep their idempotency record but drop the FK link,
+    # otherwise the delete below violates the foreign-key constraint.
+    db.table("processed_emails").update({"application_id": None}).eq(
+        "user_id", current_user["id"]
+    ).eq("application_id", application_id).execute()
     db.table("applications").delete().eq("id", application_id).eq("user_id", current_user["id"]).execute()
     return Response(status_code=204)

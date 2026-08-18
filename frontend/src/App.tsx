@@ -9,8 +9,8 @@ function Root() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
-        <p>Loading...</p>
+      <div className="center-screen">
+        <p className="status-text">Loading...</p>
       </div>
     );
   }

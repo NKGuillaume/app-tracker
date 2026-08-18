@@ -22,3 +22,10 @@ frontend/.env.local
 .DS_Store
 .vscode/
 .idea/
+
+# AI tooling (local only)
+.agents/
+.claude/
+.codex/
+skills-lock.json
+FOR Guillaume.md

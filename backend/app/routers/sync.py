@@ -28,4 +28,8 @@ async def sync_status(current_user: dict = Depends(get_current_user)) -> dict[st
         .maybe_single()
         .execute()
     )
-    return {"last_manual_sync_at": result.data.get("last_manual_sync_at") if result.data else None}
+    return {
+        "last_manual_sync_at": result.data.get("last_manual_sync_at")
+        if result and result.data
+        else None
+    }

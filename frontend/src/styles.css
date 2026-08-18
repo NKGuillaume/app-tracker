@@ -1,0 +1,628 @@
+/* ---------------------------------------------------------------------------
+   Design tokens. Single source of truth for color, type, radius, and motion.
+   Light theme on :root, dark overrides under prefers-color-scheme.
+   Radius rule: 8px for controls (buttons, inputs), 12px for surfaces
+   (cards, drawer). Applied everywhere, no exceptions.
+--------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+
+  --accent: #2f6bde;
+  --accent-hover: #2557bd;
+  --accent-fg: #ffffff;
+  --focus-ring: rgba(47, 107, 222, 0.4);
+
+  --danger: #c53a30;
+  --danger-bg: rgba(197, 58, 48, 0.08);
+
+  /* Status palette: tinted chip backgrounds with readable foregrounds.
+     Multiple hues are justified here because they carry semantic state. */
+  --status-applied-bg: #e7eefc;
+  --status-applied-fg: #2a55b0;
+  --status-interview-bg: #fdf0d9;
+  --status-interview-fg: #92610c;
+  --status-offer-bg: #ddf3e4;
+  --status-offer-fg: #146c3c;
+  --status-rejected-bg: #fbe4e2;
+  --status-rejected-fg: #a3302a;
+  --status-withdrawn-bg: #ececee;
+  --status-withdrawn-fg: #52525b;
+  --status-unknown-bg: #f4f4f5;
+  --status-unknown-fg: #71717a;
+
+  --radius-control: 8px;
+  --radius-surface: 12px;
+
+  --shadow-drawer: -8px 0 32px rgba(24, 24, 27, 0.14);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101012;
+    --surface: #18181b;
+    --surface-hover: #202024;
+    --border: #29292e;
+    --border-strong: #3a3a41;
+
+    --text: #f4f4f5;
+    --text-secondary: #b8b8c0;
+    --text-muted: #6d6d78;
+
+    --accent: #6d95ef;
+    --accent-hover: #86a9f4;
+    --accent-fg: #0d1524;
+    --focus-ring: rgba(109, 149, 239, 0.45);
+
+    --danger: #e5685f;
+    --danger-bg: rgba(229, 104, 95, 0.12);
+
+    --status-applied-bg: rgba(109, 149, 239, 0.16);
+    --status-applied-fg: #9db8f5;
+    --status-interview-bg: rgba(222, 168, 62, 0.16);
+    --status-interview-fg: #e3b866;
+    --status-offer-bg: rgba(63, 185, 116, 0.16);
+    --status-offer-fg: #6fce97;
+    --status-rejected-bg: rgba(229, 104, 95, 0.14);
+    --status-rejected-fg: #ec8b84;
+    --status-withdrawn-bg: rgba(161, 161, 170, 0.14);
+    --status-withdrawn-fg: #b8b8c0;
+    --status-unknown-bg: rgba(113, 113, 122, 0.14);
+    --status-unknown-fg: #8e8e99;
+
+    --shadow-drawer: -8px 0 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* --------------------------------- base ---------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------- controls -------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+
+.btn--danger-confirm {
+  background: var(--danger);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.input,
+.select {
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1.1rem;
+}
+
+.field > span {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.field .input,
+.field .select {
+  width: 100%;
+}
+
+/* -------------------------------- layout --------------------------------- */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  font-size: 1.15rem;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.toolbar__filters {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.toolbar__filters .input {
+  min-width: 240px;
+}
+
+/* --------------------------------- table --------------------------------- */
+
+.table-card {
+  margin-top: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.app-table th {
+  text-align: left;
+  padding: 0.65rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.app-table th:hover {
+  color: var(--text-secondary);
+}
+
+.app-table th .sort-arrow {
+  color: var(--accent);
+  margin-left: 0.25rem;
+}
+
+.app-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.app-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.app-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.app-table--busy tbody {
+  opacity: 0.5;
+}
+
+.cell-company {
+  font-weight: 500;
+}
+
+.cell-date {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.cell-empty {
+  color: var(--text-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge--applied {
+  background: var(--status-applied-bg);
+  color: var(--status-applied-fg);
+}
+.badge--interview {
+  background: var(--status-interview-bg);
+  color: var(--status-interview-fg);
+}
+.badge--offer {
+  background: var(--status-offer-bg);
+  color: var(--status-offer-fg);
+}
+.badge--rejected {
+  background: var(--status-rejected-bg);
+  color: var(--status-rejected-fg);
+}
+.badge--withdrawn {
+  background: var(--status-withdrawn-bg);
+  color: var(--status-withdrawn-fg);
+}
+.badge--unknown {
+  background: var(--status-unknown-bg);
+  color: var(--status-unknown-fg);
+}
+
+/* Week separators shown when the table is sorted by a date column. */
+.week-row td {
+  padding: 0.4rem 1rem;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.week-row {
+  cursor: default;
+}
+
+.app-table tbody tr.week-row:hover {
+  background: var(--bg);
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.table-footer__pager {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Skeleton rows shaped like the real table, shown while loading. */
+.skeleton {
+  display: block;
+  height: 0.9rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-hover) 25%,
+    var(--border) 50%,
+    var(--surface-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.empty-state {
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+}
+
+.empty-state h2 {
+  font-size: 1rem;
+}
+
+.empty-state p {
+  margin: 0.4rem auto 0;
+  max-width: 38ch;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* -------------------------------- drawer --------------------------------- */
+
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.4);
+  animation: fade-in 0.2s ease;
+  z-index: 40;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(400px, 100vw);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-drawer);
+  padding: 1.5rem;
+  overflow-y: auto;
+  animation: slide-in 0.25s var(--ease-out);
+  z-index: 50;
+}
+
+.drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.drawer__header h2 {
+  font-size: 1.05rem;
+}
+
+.drawer__snippet {
+  margin-top: 1.1rem;
+}
+
+.drawer__snippet strong {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.drawer__snippet p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  padding: 0.7rem 0.85rem;
+  background: var(--surface-hover);
+  border-radius: var(--radius-control);
+}
+
+.drawer__link {
+  display: inline-block;
+  margin-top: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.drawer__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+/* --------------------------- login / full-page ---------------------------- */
+
+.center-screen {
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: min(380px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  padding: 2.25rem 2rem;
+  text-align: center;
+}
+
+.login-card h1 {
+  font-size: 1.3rem;
+}
+
+.login-card > p {
+  margin: 0.6rem 0 1.6rem;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.login-card .btn {
+  width: 100%;
+  padding: 0.6rem 1rem;
+}
+
+.status-text {
+  color: var(--text-secondary);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.sync-note {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+.sync-error {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---------------------------- reduced motion ------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .status-text {
+    animation: none;
+  }
+
+  .drawer,
+  .drawer-scrim {
+    animation: none;
+  }
+
+  .btn,
+  .app-table tbody tr {
+    transition: none;
+  }
+}
