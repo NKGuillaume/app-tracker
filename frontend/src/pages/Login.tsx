@@ -1,4 +1,6 @@
+import type { ApplicationStatus } from "../api/client";
 import { api } from "../api/client";
+import { StatusBadge } from "../components/StatusBadge";
 
 /* Official multicolor Google "G" mark, required branding for the sign-in
    button. Not a hand-rolled icon. */
@@ -25,20 +27,46 @@ function GoogleMark() {
   );
 }
 
+/* Example rows rendered with the real StatusBadge component, so the preview
+   is the actual UI rather than a mock screenshot. Data is illustrative. */
+const EXAMPLE_ROWS: { company: string; title: string; status: ApplicationStatus }[] = [
+  { company: "Larkspur Health", title: "Software Engineer Intern", status: "interview" },
+  { company: "Tidewater Systems", title: "Backend Engineer", status: "applied" },
+  { company: "Fernhill Labs", title: "Data Engineering Intern", status: "offer" },
+  { company: "Halcyon Bio", title: "Platform Engineer", status: "rejected" },
+];
+
 export function Login() {
   return (
-    <div className="center-screen">
-      <div className="login-card">
-        <h1>Application Tracker</h1>
-        <p>Sign in with Google to start tracking your job applications.</p>
-        {/* Full-page navigation, not a fetch — OAuth requires a top-level redirect. */}
-        <a href={api.loginUrl()} style={{ textDecoration: "none" }}>
-          <button type="button" className="btn btn--ghost">
-            <GoogleMark />
-            Sign in with Google
-          </button>
+    <main className="login">
+      <section className="login__copy">
+        <h1>Every application, tracked from your inbox.</h1>
+        <p>
+          Connect Gmail once. Confirmations, interviews, offers and rejections sort themselves
+          into one list.
+        </p>
+        {/* Full-page navigation, not a fetch: OAuth requires a top-level redirect. */}
+        <a href={api.loginUrl()} className="btn btn--ghost btn--lg">
+          <GoogleMark />
+          Sign in with Google
         </a>
-      </div>
-    </div>
+        <p className="login__fineprint">Read-only Gmail access. Edit or delete any entry.</p>
+      </section>
+
+      <section className="login__preview" aria-label="Example of the tracker">
+        <ul className="preview-list">
+          {EXAMPLE_ROWS.map((row) => (
+            <li key={row.company}>
+              <div>
+                <span className="preview-list__company">{row.company}</span>
+                <span className="preview-list__title">{row.title}</span>
+              </div>
+              <StatusBadge status={row.status} />
+            </li>
+          ))}
+        </ul>
+        <p className="login__caption">Example data</p>
+      </section>
+    </main>
   );
 }

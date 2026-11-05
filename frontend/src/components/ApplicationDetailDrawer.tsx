@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { Application, ApplicationStatus } from "../api/client";
 import { api } from "../api/client";
+import { capitalize } from "../format";
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
   "applied",
@@ -28,9 +29,26 @@ export function ApplicationDetailDrawer({
   const [jobTitle, setJobTitle] = useState(application.job_title ?? "");
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
 
-  const gmailThreadUrl = `https://mail.google.com/mail/u/0/#inbox/${application.gmail_thread_id}`;
+  const gmailThreadUrl = `https://mail.google.com/mail/u/0/#all/${application.gmail_thread_id}`;
+  const companyMissing = company.trim() === "";
+
+  // Move focus into the dialog, return it to where it was on close, and
+  // stop the page behind from scrolling.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    firstFieldRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -40,15 +58,20 @@ export function ApplicationDetailDrawer({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const handleSave = async () => {
+  const handleSave = async (event: FormEvent) => {
+    event.preventDefault();
+    if (companyMissing) return;
     setSaving(true);
+    setError(null);
     try {
       await api.updateApplication(application.id, {
-        company,
-        job_title: jobTitle || null,
+        company: company.trim(),
+        job_title: jobTitle.trim() || null,
         status,
       });
       onSaved();
+    } catch {
+      setError("Couldn't save changes. Try again.");
     } finally {
       setSaving(false);
     }
@@ -59,16 +82,31 @@ export function ApplicationDetailDrawer({
       setConfirmingDelete(true);
       return;
     }
-    await api.deleteApplication(application.id);
-    onDeleted();
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.deleteApplication(application.id);
+      onDeleted();
+    } catch {
+      setError("Couldn't delete this application. Try again.");
+      setConfirmingDelete(false);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <>
       <div className="drawer-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="drawer" role="dialog" aria-modal="true" aria-label="Edit application">
+      <form
+        className="drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-title"
+        onSubmit={handleSave}
+      >
         <div className="drawer__header">
-          <h2>Edit Application</h2>
+          <h2 id="drawer-title">Edit application</h2>
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             Close
           </button>
@@ -77,15 +115,24 @@ export function ApplicationDetailDrawer({
         <label className="field">
           <span>Company</span>
           <input
+            ref={firstFieldRef}
             type="text"
             className="input"
             value={company}
+            required
+            aria-invalid={companyMissing}
+            aria-describedby={companyMissing ? "company-error" : undefined}
             onChange={(e) => setCompany(e.target.value)}
           />
+          {companyMissing && (
+            <small id="company-error" className="field__error">
+              Company is required.
+            </small>
+          )}
         </label>
 
         <label className="field">
-          <span>Job Title</span>
+          <span>Job title</span>
           <input
             type="text"
             className="input"
@@ -103,7 +150,7 @@ export function ApplicationDetailDrawer({
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {capitalize(option)}
               </option>
             ))}
           </select>
@@ -117,11 +164,22 @@ export function ApplicationDetailDrawer({
         )}
 
         <a href={gmailThreadUrl} target="_blank" rel="noreferrer" className="drawer__link">
-          View email thread in Gmail ↗
+          Open email thread in Gmail
+          <span className="visually-hidden"> (opens in a new tab)</span>
         </a>
 
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+
         <div className="drawer__actions">
-          <button type="button" className="btn btn--primary" onClick={handleSave} disabled={saving}>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={saving || deleting || companyMissing}
+          >
             {saving ? "Saving..." : "Save"}
           </button>
           <button
@@ -129,11 +187,12 @@ export function ApplicationDetailDrawer({
             className={`btn ${confirmingDelete ? "btn--danger-confirm" : "btn--danger"}`}
             onClick={handleDelete}
             onBlur={() => setConfirmingDelete(false)}
+            disabled={saving || deleting}
           >
-            {confirmingDelete ? "Confirm delete" : "Delete"}
+            {deleting ? "Deleting..." : confirmingDelete ? "Confirm delete" : "Delete"}
           </button>
         </div>
-      </div>
+      </form>
     </>
   );
 }

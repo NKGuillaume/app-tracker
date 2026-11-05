@@ -1,10 +1,8 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import type { ReactNode } from "react";
-import type { Application, ApplicationStatus } from "../api/client";
-
-function StatusBadge({ status }: { status: ApplicationStatus }) {
-  return <span className={`badge badge--${status}`}>{status}</span>;
-}
+import type { KeyboardEvent, ReactNode } from "react";
+import type { Application } from "../api/client";
+import { formatDate, parseDate } from "../format";
+import { StatusBadge } from "./StatusBadge";
 
 const columnHelper = createColumnHelper<Application>();
 
@@ -27,32 +25,26 @@ const columns = [
   columnHelper.accessor("application_date", {
     header: "Applied",
     id: "application_date",
-    cell: (info) =>
-      info.getValue() ? (
-        <span className="cell-date">{info.getValue()}</span>
+    cell: (info) => {
+      const value = info.getValue();
+      return value ? (
+        <span className="cell-date">{formatDate(value)}</span>
       ) : (
         <span className="cell-empty">Not set</span>
-      ),
+      );
+    },
   }),
   columnHelper.accessor("updated_at", {
     header: "Last Updated",
     id: "updated_at",
-    cell: (info) => (
-      <span className="cell-date">{new Date(info.getValue()).toLocaleDateString()}</span>
-    ),
+    cell: (info) => <span className="cell-date">{formatDate(info.getValue())}</span>,
   }),
 ];
 
-/* Week bucket for the group separators shown when sorting by a date column.
-   Date-only strings ("2026-08-01") are parsed as local dates on purpose:
-   new Date("2026-08-01") would read as UTC midnight and can land in the wrong
-   day (and week) in western timezones. */
+/* Week bucket for the group separators shown when sorting by a date column. */
 function weekLabel(value: string | null): string {
   if (!value) return "No date";
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  const date = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(value);
+  const date = parseDate(value);
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -72,6 +64,8 @@ interface ApplicationsTableProps {
   pageSize: number;
   sort: string;
   loading: boolean;
+  hasFilters: boolean;
+  onClearFilters: () => void;
   onSortChange: (sort: string) => void;
   onPageChange: (page: number) => void;
   onRowClick: (application: Application) => void;
@@ -83,7 +77,7 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 6 }, (_, i) => (
-        <tr key={i} style={{ cursor: "default" }}>
+        <tr key={i} className="skeleton-row">
           {columns.map((_, j) => (
             <td key={j}>
               <span className="skeleton" style={{ width: j === 0 ? "70%" : "50%" }} />
@@ -102,6 +96,8 @@ export function ApplicationsTable({
   pageSize,
   sort,
   loading,
+  hasFilters,
+  onClearFilters,
   onSortChange,
   onPageChange,
   onRowClick,
@@ -125,16 +121,30 @@ export function ApplicationsTable({
     }
   };
 
+  const handleRowKeyDown = (event: KeyboardEvent, application: Application) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onRowClick(application);
+    }
+  };
+
   if (!loading && applications.length === 0) {
     return (
       <div className="table-card">
-        <div className="empty-state">
-          <h2>No applications yet</h2>
-          <p>
-            Click &quot;Sync now&quot; to scan your Gmail for job applications, or adjust
-            your search and filters.
-          </p>
-        </div>
+        {hasFilters ? (
+          <div className="empty-state">
+            <h2>No matches</h2>
+            <p>No applications match this search or status filter.</p>
+            <button type="button" className="btn btn--ghost" onClick={onClearFilters}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h2>No applications yet</h2>
+            <p>Press Sync now to scan the last 90 days of Gmail for job applications.</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -142,28 +152,34 @@ export function ApplicationsTable({
   return (
     <div className="table-card">
       <div className="table-scroll">
-        <table className={`app-table${loading && !initialLoad ? " app-table--busy" : ""}`}>
+        <table
+          className={`app-table${loading && !initialLoad ? " app-table--busy" : ""}`}
+          aria-busy={loading}
+        >
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    onClick={() => handleHeaderClick(header.column.id)}
-                    aria-sort={
-                      sortColumn === header.column.id
-                        ? sortDescending
-                          ? "descending"
-                          : "ascending"
-                        : undefined
-                    }
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {sortColumn === header.column.id && (
-                      <span className="sort-arrow">{sortDescending ? "↓" : "↑"}</span>
-                    )}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const active = sortColumn === header.column.id;
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      aria-sort={active ? (sortDescending ? "descending" : "ascending") : "none"}
+                    >
+                      <button
+                        type="button"
+                        className="th-sort"
+                        onClick={() => handleHeaderClick(header.column.id)}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <span className="sort-arrow" aria-hidden="true">
+                          {active ? (sortDescending ? "↓" : "↑") : ""}
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -182,14 +198,25 @@ export function ApplicationsTable({
                     if (label !== previousLabel) {
                       rows.push(
                         <tr key={`week-${label}`} className="week-row">
-                          <td colSpan={columns.length}>{label}</td>
+                          <th colSpan={columns.length} scope="colgroup">
+                            {label}
+                          </th>
                         </tr>,
                       );
                       previousLabel = label;
                     }
                   }
                   rows.push(
-                    <tr key={row.id} onClick={() => onRowClick(row.original)}>
+                    <tr
+                      key={row.id}
+                      className="data-row"
+                      tabIndex={0}
+                      aria-label={`Edit ${row.original.company}${
+                        row.original.job_title ? `, ${row.original.job_title}` : ""
+                      }`}
+                      onClick={() => onRowClick(row.original)}
+                      onKeyDown={(e) => handleRowKeyDown(e, row.original)}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
