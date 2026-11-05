@@ -29,3 +29,6 @@ frontend/.env.local
 .codex/
 skills-lock.json
 FOR Guillaume.md
+
+# Eval data (contains email content)
+backend/eval/

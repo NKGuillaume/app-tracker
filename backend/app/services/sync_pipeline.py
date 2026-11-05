@@ -5,6 +5,7 @@ Shared by manual sync (Phase B) and the Pub/Sub webhook (Phase C) -- both just
 supply a different list of message ids and call `_process_message_ids`.
 """
 
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -16,7 +17,8 @@ from app.services.email_extraction import classify_and_extract
 # Bounded by date AND by a job-application search (ATS senders + subject keywords,
 # including internship terms) so the 300-message budget is spent on relevant mail
 # rather than the newest 300 messages of any kind.
-MANUAL_SYNC_QUERY = f"newer_than:90d {heuristics.gmail_search_query()}"
+MANUAL_SYNC_WINDOW = "newer_than:90d"
+MANUAL_SYNC_QUERY = f"{MANUAL_SYNC_WINDOW} {heuristics.gmail_search_query()}"
 MAX_MANUAL_SYNC_MESSAGES = 300
 
 
@@ -207,7 +209,19 @@ def _merge_duplicate_applications(db: Any, user_id: str) -> int:
 
 
 def _process_message_ids(db: Any, user: dict, refresh_token: str, message_ids: list[str]) -> dict[str, int]:
-    stats = {"scanned": 0, "skipped": 0, "new_applications": 0, "updated_applications": 0}
+    # scanned = skipped + heuristic_filtered + llm_calls, and
+    # llm_calls = llm_rejected + job_emails. The extra counters exist so the
+    # cost saving of the keyword pre-filter can be measured, not guessed.
+    stats = {
+        "scanned": 0,
+        "skipped": 0,
+        "heuristic_filtered": 0,
+        "llm_calls": 0,
+        "llm_rejected": 0,
+        "job_emails": 0,
+        "new_applications": 0,
+        "updated_applications": 0,
+    }
 
     candidates: list[dict] = []
     for message_id in message_ids:
@@ -221,6 +235,7 @@ def _process_message_ids(db: Any, user: dict, refresh_token: str, message_ids: l
 
         if not heuristics.is_candidate_email(summary["subject"], summary["sender"]):
             _mark_processed(db, user["id"], message_id, "not_job_application")
+            stats["heuristic_filtered"] += 1
             continue
 
         candidates.append(summary)
@@ -232,10 +247,14 @@ def _process_message_ids(db: Any, user: dict, refresh_token: str, message_ids: l
 
     for summary in candidates:
         extraction = classify_and_extract(summary["subject"], summary["sender"], summary["body_text"])
+        stats["llm_calls"] += 1
 
         if not extraction.is_job_application_email:
             _mark_processed(db, user["id"], summary["id"], "not_job_application")
+            stats["llm_rejected"] += 1
             continue
+
+        stats["job_emails"] += 1
 
         application_id, was_new = _upsert_application(db, user["id"], summary, extraction)
         _mark_processed(db, user["id"], summary["id"], "job_application", application_id)
@@ -248,14 +267,22 @@ def _process_message_ids(db: Any, user: dict, refresh_token: str, message_ids: l
     return stats
 
 
-def run_manual_sync(user: dict) -> dict[str, int]:
+def run_manual_sync(user: dict) -> dict[str, Any]:
+    started = time.perf_counter()
     db = get_db()
     refresh_token = decrypt_token(user["google_refresh_token_encrypted"])
 
     message_ids = gmail_client.list_candidate_message_ids(
         refresh_token, MANUAL_SYNC_QUERY, MAX_MANUAL_SYNC_MESSAGES
     )
-    stats = _process_message_ids(db, user, refresh_token, message_ids)
+    stats: dict[str, Any] = _process_message_ids(db, user, refresh_token, message_ids)
+    # Stage 1 of filtering happens server-side in the Gmail search query; compare
+    # what it matched against everything in the same 90-day window. Gmail only
+    # gives an estimate for the latter, so it is reported as one.
+    stats["gmail_matched"] = len(message_ids)
+    stats["mailbox_90d_estimate"] = gmail_client.count_messages_estimate(
+        refresh_token, MANUAL_SYNC_WINDOW
+    )
     stats["merged_duplicates"] = _merge_duplicate_applications(db, user["id"])
 
     current_history_id = gmail_client.get_current_history_id(refresh_token)
@@ -267,6 +294,7 @@ def run_manual_sync(user: dict) -> dict[str, int]:
         }
     ).execute()
 
+    stats["duration_seconds"] = round(time.perf_counter() - started, 2)
     return stats
 
 

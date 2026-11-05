@@ -45,6 +45,14 @@ def list_candidate_message_ids(refresh_token: str, query: str, max_results: int 
     return message_ids
 
 
+def count_messages_estimate(refresh_token: str, query: str) -> int:
+    """Gmail's own estimate of how many messages match `query` (one cheap call,
+    no paging). Approximate by Google's definition -- label it as such."""
+    service = _service(refresh_token)
+    response = service.users().messages().list(userId="me", q=query, maxResults=1).execute()
+    return int(response.get("resultSizeEstimate", 0))
+
+
 def history_list(refresh_token: str, start_history_id: str) -> list[str]:
     """Return message ids added since start_history_id. Used for webhook-triggered
     incremental sync."""

@@ -84,6 +84,14 @@ export interface SyncResult {
   skipped: number;
   new_applications: number;
   updated_applications: number;
+  merged_duplicates?: number;
+  heuristic_filtered?: number;
+  llm_calls?: number;
+  llm_rejected?: number;
+  job_emails?: number;
+  gmail_matched?: number;
+  mailbox_90d_estimate?: number;
+  duration_seconds?: number;
 }
 
 export interface SyncStatus {
