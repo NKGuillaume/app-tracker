@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Application, ApplicationStatus, User } from "../api/client";
 import { api } from "../api/client";
+import { AppHeader } from "../components/AppHeader";
 import { ApplicationDetailDrawer } from "../components/ApplicationDetailDrawer";
 import { ApplicationsTable } from "../components/ApplicationsTable";
 import { SyncButton } from "../components/SyncButton";
@@ -78,11 +79,6 @@ export function Dashboard({ user, onLoggedOut }: DashboardProps) {
     fetchApplications();
   }, [fetchApplications]);
 
-  const handleLogout = async () => {
-    await api.logout().catch(() => undefined);
-    onLoggedOut();
-  };
-
   const hasFilters = search !== "" || statusFilter !== "";
 
   const clearFilters = () => {
@@ -94,15 +90,7 @@ export function Dashboard({ user, onLoggedOut }: DashboardProps) {
 
   return (
     <div className="page">
-      <header className="app-header">
-        <h1>Application Tracker</h1>
-        <div className="app-header__user">
-          <span className="app-header__name">{user.name ?? user.email}</span>
-          <button type="button" className="btn btn--ghost" onClick={handleLogout}>
-            Log out
-          </button>
-        </div>
-      </header>
+      <AppHeader user={user} onLoggedOut={onLoggedOut} />
 
       <div className="toolbar">
         <div className="toolbar__filters">

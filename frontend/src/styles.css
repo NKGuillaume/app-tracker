@@ -797,3 +797,273 @@ a.btn:hover {
     transition: none;
   }
 }
+
+/* ------------------------------ navigation ------------------------------- */
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.app-nav__link {
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.app-nav__link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.app-nav__link.active {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* ------------------------------ interviews ------------------------------- */
+
+.page-intro {
+  margin-top: 1.5rem;
+}
+
+.page-intro h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.page-intro p {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  max-width: 65ch;
+}
+
+.interview-section {
+  margin-top: 1.75rem;
+}
+
+.interview-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.interview-section__count {
+  min-width: 1.5rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.interview-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interview-card {
+  display: block;
+  padding: 1rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+}
+
+.interview-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.interview-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.interview-card__company {
+  font-weight: 600;
+}
+
+.interview-card__due {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.interview-card__due.is-past {
+  color: var(--text-muted);
+}
+
+.interview-card__date {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.interview-card__role {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.interview-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+}
+
+.interview-card__link {
+  margin-left: auto;
+  font-size: 0.88rem;
+}
+
+.badge--platform {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  text-transform: none;
+}
+
+/* Prep tips panel */
+.prep {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.prep h3 {
+  margin: 1.1rem 0 0.4rem;
+  font-size: 0.88rem;
+}
+
+.prep h3:first-of-type {
+  margin-top: 0;
+}
+
+.prep__expect {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.prep__steps {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding-left: 1.3rem;
+  max-width: 70ch;
+}
+
+.prep__steps li {
+  padding-left: 0.2rem;
+  font-size: 0.92rem;
+}
+
+.prep__steps strong {
+  display: block;
+  font-weight: 600;
+}
+
+.prep__steps span {
+  color: var(--text-secondary);
+}
+
+.prep__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prep__topics li {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--status-applied-bg);
+  color: var(--status-applied-fg);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.prep__dayof {
+  margin: 0;
+  padding-left: 1.2rem;
+  max-width: 70ch;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.prep__dayof li + li {
+  margin-top: 0.25rem;
+}
+
+.prep__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.prep__skeleton {
+  margin-top: 0.6rem;
+}
+
+.prep__error p {
+  margin: 0 0 0.75rem;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.field__help {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .app-header__left {
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+  }
+
+  .interview-card__link {
+    margin-left: 0;
+  }
+
+  .prep__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

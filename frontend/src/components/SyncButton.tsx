@@ -10,6 +10,7 @@ function summarize(result: SyncResult): string {
   const parts: string[] = [];
   if (result.new_applications) parts.push(`${result.new_applications} new`);
   if (result.updated_applications) parts.push(`${result.updated_applications} updated`);
+  if (result.rejections) parts.push(`${result.rejections} rejected`);
   return parts.length ? `Sync done: ${parts.join(", ")}` : "Sync done: nothing new";
 }
 

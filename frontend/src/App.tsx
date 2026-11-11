@@ -1,7 +1,8 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useCurrentUser } from "./api/useCurrentUser";
 import { AuthCallback } from "./pages/AuthCallback";
 import { Dashboard } from "./pages/Dashboard";
+import { Interviews } from "./pages/Interviews";
 import { Login } from "./pages/Login";
 
 function Root() {
@@ -33,14 +34,22 @@ function Root() {
     return <Login />;
   }
 
-  return <Dashboard user={user} onLoggedOut={refetch} />;
+  // Signed-in routes live under Root so the session is checked once, not on
+  // every page change.
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard user={user} onLoggedOut={refetch} />} />
+      <Route path="/interviews" element={<Interviews user={user} onLoggedOut={refetch} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export function App() {
   return (
     <Routes>
       <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/" element={<Root />} />
+      <Route path="*" element={<Root />} />
     </Routes>
   );
 }

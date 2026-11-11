@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import type { Application, ApplicationStatus } from "../api/client";
+import type { Application, ApplicationStatus, InterviewType } from "../api/client";
 import { api } from "../api/client";
 import { capitalize } from "../format";
+import { INTERVIEW_TYPE_LABELS, INTERVIEW_TYPES } from "../interviewTypes";
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
   "applied",
@@ -28,6 +29,11 @@ export function ApplicationDetailDrawer({
   const [company, setCompany] = useState(application.company);
   const [jobTitle, setJobTitle] = useState(application.job_title ?? "");
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
+  const [interviewType, setInterviewType] = useState<InterviewType | "">(
+    application.interview_type ?? "",
+  );
+  const [platform, setPlatform] = useState(application.assessment_platform ?? "");
+  const [deadline, setDeadline] = useState(application.interview_deadline ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -68,6 +74,11 @@ export function ApplicationDetailDrawer({
         company: company.trim(),
         job_title: jobTitle.trim() || null,
         status,
+        ...(status === "interview" && {
+          interview_type: interviewType || null,
+          assessment_platform: platform.trim() || null,
+          interview_deadline: deadline || null,
+        }),
       });
       onSaved();
     } catch {
@@ -155,6 +166,50 @@ export function ApplicationDetailDrawer({
             ))}
           </select>
         </label>
+
+        {status === "interview" && (
+          <>
+            <label className="field">
+              <span>Interview type</span>
+              <select
+                className="select"
+                value={interviewType}
+                onChange={(e) => setInterviewType(e.target.value as InterviewType | "")}
+              >
+                <option value="">Not set</option>
+                {INTERVIEW_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {INTERVIEW_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Platform</span>
+              <input
+                type="text"
+                className="input"
+                value={platform}
+                aria-describedby="platform-help"
+                onChange={(e) => setPlatform(e.target.value)}
+              />
+              <small id="platform-help" className="field__help">
+                For example HackerRank, CodeSignal or HireVue
+              </small>
+            </label>
+
+            <label className="field">
+              <span>Due or scheduled date</span>
+              <input
+                type="date"
+                className="input"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </label>
+          </>
+        )}
 
         {application.raw_snippet && (
           <div className="drawer__snippet">

@@ -42,6 +42,22 @@ export type ApplicationStatus =
   | "withdrawn"
   | "unknown";
 
+export type InterviewType =
+  | "online_assessment"
+  | "video_interview"
+  | "phone_screen"
+  | "technical_interview"
+  | "behavioral_interview"
+  | "final_round"
+  | "other";
+
+export interface InterviewPrep {
+  what_to_expect: string;
+  prep_steps: { title: string; detail: string }[];
+  practice_topics: string[];
+  day_of_tips: string[];
+}
+
 export interface Application {
   id: string;
   company: string;
@@ -54,6 +70,12 @@ export interface Application {
   manually_edited: boolean;
   created_at: string;
   updated_at: string;
+  interview_type?: InterviewType | null;
+  assessment_platform?: string | null;
+  interview_deadline?: string | null;
+  team?: string | null;
+  interview_prep?: InterviewPrep | null;
+  interview_prep_generated_at?: string | null;
 }
 
 export interface PaginatedApplications {
@@ -76,6 +98,9 @@ export interface ApplicationUpdate {
   job_title?: string | null;
   application_date?: string | null;
   status?: ApplicationStatus;
+  interview_type?: InterviewType | null;
+  assessment_platform?: string | null;
+  interview_deadline?: string | null;
 }
 
 export interface SyncResult {
@@ -89,8 +114,9 @@ export interface SyncResult {
   llm_calls?: number;
   llm_rejected?: number;
   job_emails?: number;
+  rejections?: number;
   gmail_matched?: number;
-  mailbox_90d_estimate?: number;
+  mailbox_90d?: number;
   duration_seconds?: number;
 }
 
@@ -121,6 +147,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
+  interviewPrep: (id: string, regenerate = false) =>
+    request<Application>(
+      `/applications/${id}/interview-prep${regenerate ? "?regenerate=true" : ""}`,
+      { method: "POST" },
+    ),
   deleteApplication: (id: string) =>
     request<void>(`/applications/${id}`, { method: "DELETE" }),
 

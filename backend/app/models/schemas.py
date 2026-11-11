@@ -1,7 +1,9 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
+
+from app.models.extraction import InterviewType
 
 ApplicationStatus = Literal["applied", "interview", "offer", "rejected", "withdrawn", "unknown"]
 
@@ -25,6 +27,12 @@ class ApplicationOut(BaseModel):
     manually_edited: bool
     created_at: datetime
     updated_at: datetime
+    interview_type: InterviewType | None = None
+    assessment_platform: str | None = None
+    interview_deadline: date | None = None
+    team: str | None = None
+    interview_prep: dict[str, Any] | None = None
+    interview_prep_generated_at: datetime | None = None
 
 
 class ApplicationUpdate(BaseModel):
@@ -32,6 +40,10 @@ class ApplicationUpdate(BaseModel):
     job_title: str | None = None
     application_date: date | None = None
     status: ApplicationStatus | None = None
+    interview_type: InterviewType | None = None
+    assessment_platform: str | None = None
+    interview_deadline: date | None = None
+    team: str | None = None
 
 
 class PaginatedApplications(BaseModel):

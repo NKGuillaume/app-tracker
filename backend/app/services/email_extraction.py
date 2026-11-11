@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from openai import OpenAI
+from pydantic import BaseModel
 
 from app.config import settings
 from app.models.extraction import EmailExtraction
@@ -46,6 +47,23 @@ Worked examples:
 Infer application_date from the email's own content when it mentions a date;
 otherwise leave it null (the caller falls back to the email's send date).
 Set confidence to reflect how certain you are given the available text.
+
+When status is "interview", also fill the interview fields (leave them null
+otherwise):
+- interview_type:
+  - "online_assessment": timed coding or skills test (HackerRank, CodeSignal,
+    Codility, CoderPad take-home, Karat async, aptitude tests)
+  - "video_interview": recorded one-way video (HireVue, Spark Hire, Willo)
+  - "phone_screen": recruiter or HR call
+  - "technical_interview": live coding, system design, or technical deep-dive
+    with an engineer
+  - "behavioral_interview": hiring manager, culture-fit, or behavioral round
+  - "final_round": onsite, superday, or a final multi-round loop
+  - "other": an interview step that fits none of these
+- assessment_platform: the platform the email names, or null. Never guess one.
+- interview_deadline: the due date or scheduled date the email states. Resolve
+  relative phrases ("within 7 days") from the email's sent date. Null if none.
+- team: the team or group if the email names one ("Payments team"), else null.
 """
 
 
@@ -54,8 +72,12 @@ def _client() -> OpenAI:
     return OpenAI(api_key=settings.openai_api_key)
 
 
-def classify_and_extract(subject: str, sender: str, body_text: str) -> EmailExtraction:
-    user_content = f"Subject: {subject}\nFrom: {sender}\n\n{body_text}"
+def classify_and_extract(
+    subject: str, sender: str, body_text: str, sent_date: str | None = None
+) -> EmailExtraction:
+    # The sent date lets the model resolve "complete within 7 days" into a deadline.
+    sent_line = f"Sent: {sent_date}\n" if sent_date else ""
+    user_content = f"Subject: {subject}\nFrom: {sender}\n{sent_line}\n{body_text}"
 
     completion = _client().chat.completions.parse(
         model=MODEL,
@@ -74,3 +96,51 @@ def classify_and_extract(subject: str, sender: str, body_text: str) -> EmailExtr
         return EmailExtraction(is_job_application_email=False, status="unknown", confidence=0.0)
 
     return message.parsed
+
+
+MATCH_SYSTEM_PROMPT = """\
+A job seeker received a status email (interview invitation, rejection, or offer).
+Decide which of their existing applications it belongs to.
+
+Match on the hiring company and role. Company names may be abbreviated or
+written differently ("OKC Thunder" = "Oklahoma City Thunder", "JPMC" =
+"JPMorgan Chase"). Roles may be worded differently or include locations,
+years, or requisition numbers.
+
+Return the id of the single application it clearly belongs to. Return null if
+none fits, or if several fit and you cannot tell which one. A wrong match is
+worse than no match.
+"""
+
+
+class _ApplicationMatch(BaseModel):
+    application_id: str | None
+
+
+def match_application(
+    company: str | None, job_title: str | None, status: str, candidates: list[dict]
+) -> str | None:
+    """AI fallback for status emails the deterministic rules couldn't place.
+    Returns a candidate id, or None. Callers must validate the id."""
+    listing = "\n".join(
+        f"- id={c['id']} | company={c.get('company')} | role={c.get('job_title') or 'unknown'}"
+        for c in candidates
+    )
+    completion = _client().chat.completions.parse(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": MATCH_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"Email: {status} for company={company} | role={job_title or 'not stated'}\n\n"
+                    f"Existing applications:\n{listing}"
+                ),
+            },
+        ],
+        response_format=_ApplicationMatch,
+    )
+    message = completion.choices[0].message
+    if message.refusal or message.parsed is None:
+        return None
+    return message.parsed.application_id

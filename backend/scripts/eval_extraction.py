@@ -19,8 +19,10 @@ import csv
 import random
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from app.services.matching import company_words
 from scripts.common import EVAL_DIR, pct
 
 FIELDS = [
@@ -58,16 +60,17 @@ def export(email: str, n: int, filtered: int, seed: int) -> None:
     # precision and recall get evidence. Negatives that fail the keyword filter
     # never reached the AI; they fill the separate "filtered" bucket instead.
     want_pos = min(len(positives), round(n * 0.7))
-    judged: list[dict] = []
+    # Fetch in batches on one login. Negatives are over-fetched (capped) because
+    # only some of them reached the AI; the rest feed the "filtered" bucket.
+    neg_pool = negatives[: min(len(negatives), 3 * (n + filtered))]
+    fetched = gmail_client.get_message_summaries(token, positives + neg_pool)
+    judged: list[dict] = [fetched[m] for m in positives[:want_pos] if m in fetched]
     dropped: list[dict] = []
 
-    for message_id in positives[:want_pos]:
-        judged.append(gmail_client.get_message_summary(token, message_id))
-
-    for message_id in negatives:
-        if len(judged) >= n and len(dropped) >= filtered:
-            break
-        summary = gmail_client.get_message_summary(token, message_id)
+    for message_id in neg_pool:
+        summary = fetched.get(message_id)
+        if summary is None:
+            continue
         if heuristics.is_candidate_email(summary["subject"], summary["sender"]):
             if len(judged) < n:
                 judged.append(summary)
@@ -77,12 +80,15 @@ def export(email: str, n: int, filtered: int, seed: int) -> None:
     for message_id in positives[want_pos:]:  # top up if there weren't enough negatives
         if len(judged) >= n:
             break
-        judged.append(gmail_client.get_message_summary(token, message_id))
+        if message_id in fetched:
+            judged.append(fetched[message_id])
 
     out_rows = []
     print(f"Re-running extraction on {len(judged)} emails...")
-    for s in judged:
-        ex = classify_and_extract(s["subject"], s["sender"], s["body_text"])
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(
+            lambda e: classify_and_extract(e["subject"], e["sender"], e["body_text"]), judged))
+    for s, ex in zip(judged, results):
         out_rows.append({
             "message_id": s["id"], "source": "ai", "subject": s["subject"],
             "sender": s["sender"], "snippet": s["snippet"],
@@ -111,14 +117,10 @@ def export(email: str, n: int, filtered: int, seed: int) -> None:
 
 # ---------------------------------------------------------------------- score
 
-_SUFFIXES = {"inc", "llc", "corp", "corporation", "ltd", "co", "company", "plc", "gmbh"}
-
-
 def normalize(value: str, *, company: bool = False) -> str:
-    words = re.sub(r"[^\w\s]", " ", value.lower()).split()
     if company:
-        words = [w for w in words if w not in _SUFFIXES]
-    return " ".join(words)
+        return " ".join(company_words(value))
+    return " ".join(re.sub(r"[^\w\s]", " ", value.lower()).split())
 
 
 def _yes(value: str) -> bool | None:
